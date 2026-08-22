@@ -1,0 +1,175 @@
+'use client'
+import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
+import { BRL, NUM, pct, situacao } from '@/lib/format'
+import { atualizarVeiculo, criarVeiculo, excluirVeiculo, marcarVendido } from '@/actions/estoque'
+import type { Veiculo } from '@/lib/types'
+import Modal from '@/components/Modal'
+
+const IC = {
+  edit: <><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></>,
+  sold: <path d="M20 6L9 17l-5-5" />,
+  del: <><path d="M3 6h18" /><path d="M8 6V4h8v2" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /></>,
+}
+
+export default function EstoqueTabela({ carros }: { carros: Veiculo[] }) {
+  const router = useRouter()
+  const [pendente, iniciar] = useTransition()
+  const [busca, setBusca] = useState('')
+  const [filtro, setFiltro] = useState('todos')
+  const [novo, setNovo] = useState(false)
+  const [editar, setEditar] = useState<Veiculo | null>(null)
+  const [vender, setVender] = useState<Veiculo | null>(null)
+  const [apagar, setApagar] = useState<Veiculo | null>(null)
+  const [erro, setErro] = useState('')
+
+  const lista = carros.filter((c) => {
+    const txt = `${c.cod} ${c.marca} ${c.modelo} ${c.versao} ${c.cor} ${c.placa ?? ''}`.toLowerCase()
+    if (busca && !txt.includes(busca.toLowerCase())) return false
+    if (filtro === 'disponivel') return c.status === 'disponivel'
+    if (filtro === 'vendido') return c.status === 'vendido'
+    if (filtro === 'alerta') return c.status === 'disponivel' && situacao(c).prio > 0
+    return true
+  })
+
+  function rodar(fn: () => Promise<{ erro?: string; ok?: boolean }>, fechar: () => void) {
+    setErro('')
+    iniciar(async () => {
+      const r = await fn()
+      if (r?.erro) { setErro(r.erro); return }
+      fechar(); router.refresh()
+    })
+  }
+
+  return (
+    <>
+      <div className="toolbar">
+        <button className="btn" onClick={() => setNovo(true)}>+ Adicionar veículo</button>
+        <div className="search grow">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
+          <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Filtrar por modelo, código, placa ou cor" />
+        </div>
+        <select value={filtro} onChange={(e) => setFiltro(e.target.value)} style={{ width: 190 }}>
+          <option value="todos">Todos os veículos</option>
+          <option value="disponivel">Só disponíveis</option>
+          <option value="vendido">Só vendidos</option>
+          <option value="alerta">Só com alerta</option>
+        </select>
+      </div>
+
+      <div className="tbl-wrap">
+        <table className="data">
+          <thead>
+            <tr>
+              <th>Código</th><th>Veículo</th><th>Ano</th><th className="num">KM</th>
+              <th className="num">Anúncio</th><th className="num">FIPE</th><th className="num">Δ FIPE</th>
+              <th className="num">Custo</th><th className="num">Margem</th><th className="num">Dias</th>
+              <th>Situação</th><th style={{ textAlign: 'right' }}>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {lista.length ? lista.map((c) => {
+              const s = situacao(c)
+              const vendido = c.status === 'vendido'
+              return (
+                <tr key={c.id} className={vendido ? 'sold' : ''}>
+                  <td className="mono">{c.cod}</td>
+                  <td>
+                    <div className="car-name">{c.marca} {c.modelo}</div>
+                    <div className="car-sub">{c.versao} · {c.cor}{c.placa ? ` · ${c.placa}` : ''}</div>
+                  </td>
+                  <td>{c.ano_fab}/{c.ano_mod}</td>
+                  <td className="num">{NUM(c.km)}</td>
+                  <td className="num">{BRL(c.preco)}</td>
+                  <td className="num" style={{ color: 'var(--text-2)' }}>{BRL(c.fipe)}</td>
+                  <td className="num" style={{ color: (c.delta_fipe ?? 0) > 3 ? 'var(--critical)' : 'var(--text-2)' }}>{pct(c.delta_fipe)}</td>
+                  <td className="num" style={{ color: 'var(--text-2)' }}>{BRL(c.custo)}</td>
+                  <td className="num" style={{ color: 'var(--good-text)' }}>{BRL(Number(c.preco) - Number(c.custo))}</td>
+                  <td className="num">{c.dias_estoque}</td>
+                  <td><span className={`chip ${s.cls}`}><span className="dot" />{s.txt}</span></td>
+                  <td>
+                    <div className="row-actions">
+                      <button className="ia" title="Editar veículo" onClick={() => setEditar(c)}><svg viewBox="0 0 24 24">{IC.edit}</svg></button>
+                      {!vendido && <button className="ia" title="Marcar como vendido" onClick={() => setVender(c)}><svg viewBox="0 0 24 24">{IC.sold}</svg></button>}
+                      <button className="ia danger" title="Excluir do estoque" onClick={() => setApagar(c)}><svg viewBox="0 0 24 24">{IC.del}</svg></button>
+                    </div>
+                  </td>
+                </tr>
+              )
+            }) : <tr><td colSpan={12} className="empty">Nenhum veículo com esse filtro.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+
+      {novo && (
+        <Modal titulo="Adicionar veículo" ok="Salvar no estoque" erro={erro} pendente={pendente}
+          onCancel={() => { setNovo(false); setErro('') }}
+          form={(fd) => rodar(() => criarVeiculo(fd), () => setNovo(false))}>
+          <div className="mtext">O código é gerado sozinho se você deixar em branco. Ele é o que viaja no link do WhatsApp.</div>
+          <div className="grid g-2" style={{ gap: '0 12px' }}>
+            <div className="field"><label>Marca</label><input name="marca" required placeholder="Chevrolet" /></div>
+            <div className="field"><label>Modelo</label><input name="modelo" required placeholder="Onix" /></div>
+            <div className="field"><label>Versão</label><input name="versao" placeholder="1.0 Turbo LTZ" /></div>
+            <div className="field"><label>Placa</label><input name="placa" placeholder="ABC1D23" style={{ textTransform: 'uppercase' }} /></div>
+            <div className="field"><label>Ano fabricação</label><input name="ano_fab" type="number" placeholder="2021" /></div>
+            <div className="field"><label>Ano modelo</label><input name="ano_mod" type="number" required placeholder="2022" /></div>
+            <div className="field"><label>Quilometragem</label><input name="km" type="number" placeholder="42300" /></div>
+            <div className="field"><label>Cor</label><input name="cor" placeholder="Prata" /></div>
+            <div className="field"><label>Câmbio</label>
+              <select name="cambio"><option>Manual</option><option>Automático</option></select>
+            </div>
+            <div className="field"><label>Combustível</label>
+              <select name="combustivel"><option>Flex</option><option>Gasolina</option><option>Diesel</option><option>Híbrido</option><option>Elétrico</option></select>
+            </div>
+            <div className="field"><label>Preço de anúncio</label><input name="preco" type="number" required placeholder="78900" /></div>
+            <div className="field"><label>Tabela FIPE</label><input name="fipe" type="number" placeholder="79400" /></div>
+            <div className="field"><label>Custo total</label><input name="custo" type="number" placeholder="71500" /></div>
+            <div className="field"><label>Código (opcional)</label><input name="cod" placeholder="deixe em branco" /></div>
+          </div>
+          <div className="field" style={{ marginBottom: 0 }}>
+            <label>Descrição para a vitrine</label>
+            <textarea name="descricao" rows={3} placeholder="Único dono, revisões em concessionária, laudo cautelar aprovado…" />
+          </div>
+        </Modal>
+      )}
+
+      {editar && (
+        <Modal titulo={`Editar ${editar.marca} ${editar.modelo}`} ok="Salvar alterações" erro={erro} pendente={pendente}
+          onCancel={() => { setEditar(null); setErro('') }}
+          form={(fd) => rodar(() => atualizarVeiculo(editar.id, fd), () => setEditar(null))}>
+          <div className="mtext">Código <span className="mono">{editar.cod}</span>. Alterar aqui atualiza a vitrine na hora.</div>
+          <div className="grid g-2" style={{ gap: '0 12px' }}>
+            <div className="field"><label>Preço de anúncio</label><input name="preco" type="number" defaultValue={editar.preco} /></div>
+            <div className="field"><label>Quilometragem</label><input name="km" type="number" defaultValue={editar.km} /></div>
+            <div className="field"><label>Cor</label><input name="cor" defaultValue={editar.cor} /></div>
+            <div className="field"><label>Custo total</label><input name="custo" type="number" defaultValue={editar.custo} /></div>
+            <div className="field"><label>Tabela FIPE</label><input name="fipe" type="number" defaultValue={editar.fipe ?? ''} /></div>
+          </div>
+        </Modal>
+      )}
+
+      {vender && (
+        <Modal titulo="Marcar como vendido" ok="Confirmar venda" erro={erro} pendente={pendente}
+          onCancel={() => { setVender(null); setErro('') }}
+          onConfirm={() => rodar(() => marcarVendido(vender.id), () => setVender(null))}>
+          <div className="mtext">
+            O <b>{vender.marca} {vender.modelo} {vender.ano_mod}</b> sai da vitrine na hora.<br /><br />
+            Nada é apagado: o carro continua no histórico para o cálculo de margem e tempo de giro.
+            Para registrar cliente, troca e lucro, use <b>Minhas vendas → Registrar venda</b>.
+          </div>
+        </Modal>
+      )}
+
+      {apagar && (
+        <Modal titulo="Excluir do estoque" ok="Excluir mesmo assim" perigo erro={erro} pendente={pendente}
+          onCancel={() => { setApagar(null); setErro('') }}
+          onConfirm={() => rodar(() => excluirVeiculo(apagar.id), () => setApagar(null))}>
+          <div className="mtext">
+            Isso apaga <b>{apagar.marca} {apagar.modelo}</b> (<span className="mono">{apagar.cod}</span>) de vez: some da vitrine e do histórico.<br /><br />
+            Se o carro foi vendido, use <b>marcar como vendido</b> — assim você não perde o dado de margem. Excluir é para cadastro errado ou duplicado.
+          </div>
+        </Modal>
+      )}
+    </>
+  )
+}
