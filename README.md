@@ -281,3 +281,4 @@ Na ordem que faz sentido ligar, e o que cada uma exige:
 
 **Projeto pausado no Supabase** — entre no painel do Supabase e clique em **Restore**. Considere subir para o Pro se acontecer com frequência.
 # portal-veiculos
+# portal-veiculos
