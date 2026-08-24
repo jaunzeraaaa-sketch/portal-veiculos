@@ -1,10 +1,11 @@
 'use client'
 import { useRef, useState } from 'react'
 import { supabaseBrowser } from '@/lib/supabase/client'
+import { MAX_FOTOS } from '@/lib/types'
 
 type Foto = { url: string; caminho: string | null }
 
-const MAX = 12
+const MAX = MAX_FOTOS
 const LADO = 1600      // maior lado da imagem salva
 const QUALIDADE = 0.82 // JPEG
 

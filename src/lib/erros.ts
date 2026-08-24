@@ -32,6 +32,10 @@ export function traduzErro(msg: string | undefined | null): string {
     return `Falta uma coluna criada pela migração 03. ${RODE('migracao-03-leads-interesses.sql')}`
   }
 
+  if (b.includes('veiculos_fotos_max')) {
+    return 'São no máximo 10 fotos por veículo. Remova alguma antes de salvar.'
+  }
+
   // ---- erros comuns de configuração ----
   if (b.includes('jwt') || b.includes('invalid api key') || b.includes('apikey')) {
     return 'A chave do Supabase não foi aceita. Rode "node setup.mjs" e cole a chave publishable de novo.'

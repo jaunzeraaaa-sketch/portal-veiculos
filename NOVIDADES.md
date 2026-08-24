@@ -51,7 +51,7 @@ Este pacote reúne tudo que foi desenvolvido no dia. São quatro frentes.
   nome do veículo. Quando há mais de uma foto, a miniatura mostra a quantidade.
 - **Upload de fotos** no cadastro, com dois botões: **Tirar foto** (abre a câmera direto no
   celular) e **Escolher da galeria**. A foto é reduzida no próprio navegador antes de subir —
-  4 MB do celular viram cerca de 250 KB. Dá para trocar a capa e remover foto. Até 12 por carro.
+  4 MB do celular viram cerca de 250 KB. Dá para trocar a capa e remover foto. Até 10 por carro — travado no navegador, no servidor e no banco.
 - **"Informe os opcionais do seu veículo"** — lista de marcação agrupada em Conforto,
   Segurança, Tecnologia e Externo, no estilo dos portais. Vira a lista "Itens do veículo"
   na ficha que o cliente abre.

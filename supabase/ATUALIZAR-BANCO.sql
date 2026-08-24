@@ -153,6 +153,15 @@ exception when others then
   raise notice 'Balde de fotos: crie manualmente em Storage → New bucket → nome "fotos" → marque Public. (%)', sqlerrm;
 end $$;
 
+
+-- ---------------------------------------------------------------------
+--  LIMITE DE FOTOS — no máximo 10 por veículo
+-- ---------------------------------------------------------------------
+alter table public.veiculos drop constraint if exists veiculos_fotos_max;
+alter table public.veiculos
+  add constraint veiculos_fotos_max
+  check (fotos is null or array_length(fotos, 1) is null or array_length(fotos, 1) <= 10);
+
 -- ---------------------------------------------------------------------
 -- 8) CONFERÊNCIA — o resultado desta consulta é o seu recibo
 -- ---------------------------------------------------------------------

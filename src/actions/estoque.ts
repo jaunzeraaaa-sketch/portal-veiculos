@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache'
 import { supabaseServer } from '@/lib/supabase/server'
 import { traduzErro } from '@/lib/erros'
 import { OPCIONAIS, CONDICOES } from '@/lib/opcionais'
+import { MAX_FOTOS } from '@/lib/types'
 import { casarVeiculoComInteresses } from '@/actions/alertas'
 
 function limpa(s: FormDataEntryValue | null) { return (s ?? '').toString().trim() }
@@ -24,7 +25,7 @@ function fotosDe(form: FormData) {
     return lista
       .filter((u): u is string => typeof u === 'string')
       .filter((u) => u.startsWith('https://') && u.includes('/storage/v1/object/public/fotos/'))
-      .slice(0, 12)
+      .slice(0, MAX_FOTOS)   // o servidor corta o excesso mesmo se o navegador for burlado
   } catch { return [] }
 }
 

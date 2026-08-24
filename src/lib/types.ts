@@ -86,6 +86,9 @@ export type Interesse = {
   criado_em: string
 }
 
+/** Máximo de fotos por veículo. Vale no navegador, no servidor e no banco. */
+export const MAX_FOTOS = 10
+
 /** Justificativas de perda do lead. "Outro" abre um campo de texto livre. */
 export const MOTIVOS_PERDA = [
   'Comprou em outra loja',

@@ -29,6 +29,12 @@ create table if not exists public.veiculos (
   data_entrada date not null default current_date,
   criado_em   timestamptz not null default now()
 );
+-- no máximo 10 fotos por veículo
+alter table public.veiculos drop constraint if exists veiculos_fotos_max;
+alter table public.veiculos
+  add constraint veiculos_fotos_max
+  check (fotos is null or array_length(fotos, 1) is null or array_length(fotos, 1) <= 10);
+
 create index if not exists veiculos_status_idx on public.veiculos(status);
 create index if not exists veiculos_cod_idx    on public.veiculos(cod);
 
