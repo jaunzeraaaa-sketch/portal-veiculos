@@ -1300,8 +1300,9 @@ table.data .car-name{white-space:nowrap;}
 .mig-ico{font-size:19px;line-height:1.2;flex:none;}
 .mig-aviso b{font-size:13.5px;color:var(--text-1);}
 .mig-aviso p{margin:5px 0 0;font-size:12.5px;color:var(--text-2);line-height:1.55;}
-.mig-aviso ul{margin:7px 0 0;padding-left:18px;}
-.mig-aviso li{font-size:12.5px;color:var(--text-1);line-height:1.7;}
+.mig-aviso ul,.mig-aviso ol{margin:9px 0 0;padding-left:20px;}
+.mig-aviso li{font-size:12.5px;color:var(--text-1);line-height:1.75;}
+.mig-aviso li b{font-weight:650;}
 .mig-aviso .fim{font-size:11.5px;color:var(--muted);margin-top:7px;}
 
 /* justificativa da perda, na ficha do lead */

@@ -18,8 +18,10 @@ alter table public.veiculos
 alter table public.veiculos
   add column if not exists condicoes text[] default '{}';
 
--- 3) a view é recriada para enxergar a coluna nova
-create or replace view public.veiculos_view as
+-- 3) a view é recriada para enxergar a coluna nova.
+--    Tem que derrubar antes: "create or replace" não aceita coluna nova no select *.
+drop view if exists public.veiculos_view;
+create view public.veiculos_view as
   select v.*,
          (current_date - v.data_entrada)::int as dias_estoque,
          case when v.fipe is null or v.fipe = 0 then null

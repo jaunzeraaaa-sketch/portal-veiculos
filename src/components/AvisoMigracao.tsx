@@ -1,4 +1,4 @@
-/** Faixa que aparece no painel enquanto faltar rodar alguma migração no Supabase.
+/** Faixa que aparece no painel enquanto faltar rodar a atualização do banco.
  *  Sem isso, o erro só aparecia na hora de salvar, escrito em inglês de banco de dados. */
 export default function AvisoMigracao({ pendentes }: { pendentes: string[] }) {
   if (!pendentes.length) return null
@@ -7,17 +7,23 @@ export default function AvisoMigracao({ pendentes }: { pendentes: string[] }) {
     <div className="mig-aviso">
       <div className="mig-ico">⚠︎</div>
       <div>
-        <b>Falta atualizar o banco de dados.</b>
+        <b>Falta atualizar o banco de dados — leva um minuto.</b>
         <p>
-          O código novo já está instalado, mas {pendentes.length === 1 ? 'uma parte dele' : 'partes dele'} ainda
-          não {pendentes.length === 1 ? 'tem' : 'têm'} onde gravar. Enquanto isso não for feito, você vai receber
-          erro ao suspender veículo, salvar fotos ou registrar uma procura.
+          O código novo já está instalado, mas parte dele ainda não tem onde gravar. Enquanto isso não for
+          feito, você recebe erro ao suspender veículo, salvar fotos ou registrar uma procura.
         </p>
-        <p><b>Como resolver</b> — no Supabase: <span className="mono">SQL Editor → New query</span>, cole o arquivo, clique em <b>Run</b>. Uma vez para cada:</p>
-        <ul>
-          {pendentes.map((m) => <li key={m}><span className="mono">supabase/{m}</span></li>)}
-        </ul>
-        <p className="fim">São seguras de rodar mais de uma vez — nada é apagado. Depois é só recarregar esta página.</p>
+        <ol>
+          <li>Abra o Supabase e entre no seu projeto</li>
+          <li>Menu da esquerda → <b>SQL Editor</b> → <b>New query</b></li>
+          <li>Abra o arquivo <span className="mono">supabase/ATUALIZAR-BANCO.sql</span> aqui no VS Code,
+            copie tudo (⌘A, ⌘C) e cole lá</li>
+          <li>Clique em <b>Run</b> e espere aparecer <span className="mono">✅ TUDO CERTO</span></li>
+          <li>Volte aqui e recarregue a página — este aviso some sozinho</li>
+        </ol>
+        <p className="fim">
+          É seguro rodar mais de uma vez: nada é apagado e nenhum carro, lead ou venda é perdido.
+          O arquivo já resolve tudo que está faltando de uma vez só.
+        </p>
       </div>
     </div>
   )

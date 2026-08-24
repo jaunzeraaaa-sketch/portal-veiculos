@@ -90,7 +90,8 @@ create policy alertas_dono on public.alertas
 -- ---------------------------------------------------------------------
 -- 5) VISÃO PRONTA — alerta já com o nome do cliente e o carro
 -- ---------------------------------------------------------------------
-create or replace view public.alertas_view as
+drop view if exists public.alertas_view;
+create view public.alertas_view as
   select a.id, a.status, a.criado_em, a.visto_em,
          a.lead_id, a.interesse_id, a.veiculo_id,
          l.nome     as lead_nome,
