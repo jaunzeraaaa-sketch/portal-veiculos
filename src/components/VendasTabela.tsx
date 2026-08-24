@@ -1,34 +1,38 @@
 'use client'
-import { useRef, useState, useTransition } from 'react'
+import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { BRL, dataBR, hojeISO } from '@/lib/format'
 import { registrarVenda } from '@/actions/vendas'
 import type { Veiculo, Venda } from '@/lib/types'
 import Modal from '@/components/Modal'
+import { usePop } from '@/lib/usePop'
 
 export default function VendasTabela({ vendas, estoque }: { vendas: Venda[]; estoque: Veiculo[] }) {
   const router = useRouter()
   const [pendente, iniciar] = useTransition()
   const [nova, setNova] = useState(false)
   const [erro, setErro] = useState('')
-  const [ativa, setAtiva] = useState<Venda | null>(null)
-  const [pos, setPos] = useState({ top: 0, left: 0 })
+  const [de, setDe] = useState('')
+  const [ate, setAte] = useState('')
+  const [cliente, setCliente] = useState('')
   const [temTroca, setTemTroca] = useState(false)
   const [valor, setValor] = useState(estoque[0]?.preco ?? 0)
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const pop = useRef<HTMLDivElement>(null)
 
-  function abrir(v: Venda, e: React.MouseEvent) {
-    if (timer.current) clearTimeout(timer.current)
-    setAtiva(v)
-    const w = 372, h = pop.current?.offsetHeight ?? 520
-    let top = e.clientY - h / 2
-    top = Math.max(12, Math.min(top, window.innerHeight - h - 12))
-    let left = e.clientX > window.innerWidth / 2 ? e.clientX - w - 26 : e.clientX + 26
-    left = Math.max(12, Math.min(left, window.innerWidth - w - 12))
-    setPos({ top, left })
-  }
-  const fechar = () => { timer.current = setTimeout(() => setAtiva(null), 160) }
+  // mesmo cartão de hover usado no Estoque
+  const { ativo: ativa, setAtivo: setAtiva, pos, pop, abrir, fechar, segurar } = usePop<Venda>(372)
+
+  // filtros combinados: período e cliente valem juntos
+  const filtrando = Boolean(de || ate || cliente.trim())
+  const lista = vendas.filter((v) => {
+    if (de && v.data_venda < de) return false
+    if (ate && v.data_venda > ate) return false
+    if (cliente.trim() && !v.cliente.toLowerCase().includes(cliente.trim().toLowerCase())) return false
+    return true
+  })
+  const somaFiltro = lista.reduce((a, v) => a + Number(v.valor_venda), 0)
+  const lucroFiltro = lista.reduce((a, v) => a + (v.lucro ?? 0), 0)
+
+  function limpar() { setDe(''); setAte(''); setCliente('') }
 
   function salvar(fd: FormData) {
     setErro('')
@@ -52,6 +56,27 @@ export default function VendasTabela({ vendas, estoque }: { vendas: Venda[]; est
         </span>
       </div>
 
+      <div className="filtros-venda">
+        <div className="fv-campo">
+          <label htmlFor="fvDe">Data inicial</label>
+          <input id="fvDe" type="date" value={de} max={ate || undefined} onChange={(e) => setDe(e.target.value)} />
+        </div>
+        <div className="fv-campo">
+          <label htmlFor="fvAte">Data final</label>
+          <input id="fvAte" type="date" value={ate} min={de || undefined} onChange={(e) => setAte(e.target.value)} />
+        </div>
+        <div className="fv-campo grow">
+          <label htmlFor="fvCli">Cliente</label>
+          <input id="fvCli" value={cliente} onChange={(e) => setCliente(e.target.value)}
+            placeholder="Pesquisar cliente…" />
+        </div>
+        <div className="fv-res">
+          <div className="n"><b>{lista.length}</b> de {vendas.length} venda{vendas.length === 1 ? '' : 's'}</div>
+          <div className="s">{BRL(somaFiltro)} · lucro {BRL(lucroFiltro)}</div>
+        </div>
+        <button className="btn ghost" onClick={limpar} disabled={!filtrando}>Limpar filtros</button>
+      </div>
+
       <div className="tbl-wrap">
         <table className="data" style={{ minWidth: 960 }}>
           <thead>
@@ -61,7 +86,7 @@ export default function VendasTabela({ vendas, estoque }: { vendas: Venda[]; est
             </tr>
           </thead>
           <tbody onMouseLeave={fechar}>
-            {vendas.length ? vendas.map((v) => (
+            {lista.length ? lista.map((v) => (
               <tr key={v.id} className="sale-row" onMouseMove={(e) => abrir(v, e)}>
                 <td>{dataBR(v.data_venda)}</td>
                 <td><div className="car-name">{v.cliente}</div><div className="car-sub">{v.cidade}</div></td>
@@ -73,13 +98,17 @@ export default function VendasTabela({ vendas, estoque }: { vendas: Venda[]; est
                 <td className="num">{v.troca_valor ? BRL(v.troca_valor) : '—'}</td>
                 <td className="num money-in">{BRL(v.lucro)}</td>
               </tr>
-            )) : <tr><td colSpan={7} className="empty">Nenhuma venda registrada ainda.</td></tr>}
+            )) : (
+              <tr><td colSpan={7} className="empty">
+                {filtrando ? 'Nenhuma venda nesse filtro. Use "Limpar filtros" para ver todas.' : 'Nenhuma venda registrada ainda.'}
+              </td></tr>
+            )}
           </tbody>
         </table>
       </div>
 
       <div ref={pop} className={`sale-pop${ativa ? ' on' : ''}`} style={{ top: pos.top, left: pos.left }}
-        onMouseEnter={() => timer.current && clearTimeout(timer.current)} onMouseLeave={() => setAtiva(null)}>
+        onMouseEnter={segurar} onMouseLeave={() => setAtiva(null)}>
         {ativa && (
           <>
             <h4>{ativa.cliente}</h4>

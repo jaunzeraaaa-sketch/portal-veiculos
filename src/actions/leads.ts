@@ -1,6 +1,7 @@
 'use server'
 import { revalidatePath } from 'next/cache'
 import { supabaseServer } from '@/lib/supabase/server'
+import { traduzErro } from '@/lib/erros'
 import { casarInteresseComEstoque } from '@/actions/alertas'
 
 type SB = Awaited<ReturnType<typeof supabaseServer>>
@@ -68,9 +69,30 @@ async function interesseDoLead(sb: SB, leadId: string, form: FormData) {
 }
 
 export async function moverLead(id: string, estagio: string) {
+  // Perdido nunca entra por aqui: exige justificativa, então tem ação própria.
+  if (estagio === 'Perdido') return { erro: 'Para marcar como perdido, informe a justificativa.' }
   const sb = await supabaseServer()
   const { error } = await sb.from('leads').update({ estagio }).eq('id', id)
-  if (error) return { erro: error.message }
+  if (error) return { erro: traduzErro(error.message) }
+  recarregar()
+  return { ok: true }
+}
+
+/** Marca como perdido — a justificativa é obrigatória e fica gravada no lead. */
+export async function perderLead(id: string, form: FormData) {
+  const escolhido = t(form.get('motivo_perda'))
+  const outro = t(form.get('motivo_outro'))
+  const motivo = escolhido === 'Outro' ? outro : escolhido
+
+  if (!escolhido) return { erro: 'Escolha o motivo da perda.' }
+  if (escolhido === 'Outro' && !outro) return { erro: 'Escreva qual foi o motivo no campo abaixo.' }
+  if (!motivo) return { erro: 'A justificativa é obrigatória para marcar o lead como perdido.' }
+
+  const sb = await supabaseServer()
+  const { error } = await sb.from('leads')
+    .update({ estagio: 'Perdido', motivo_perda: motivo })
+    .eq('id', id)
+  if (error) return { erro: traduzErro(error.message) }
   recarregar()
   return { ok: true }
 }
@@ -92,7 +114,7 @@ export async function criarLead(form: FormData) {
     proxima_acao_data: t(form.get('proxima_acao_data')) || hoje(),
   }).select('id').single()
 
-  if (error) return { erro: error.message }
+  if (error) return { erro: traduzErro(error.message) }
   if (data?.id) {
     await agendarDoLead(sb, data.id, nome, form)
     await interesseDoLead(sb, data.id, form)
@@ -107,10 +129,11 @@ export async function salvarAcao(id: string, form: FormData) {
   const { error } = await sb.from('leads').update({
     proxima_acao: t(form.get('proxima_acao')) || null,
     proxima_acao_data: t(form.get('proxima_acao_data')) || null,
-    motivo_perda: t(form.get('motivo_perda')) || null,
+    // motivo_perda NÃO entra aqui: quem grava é perderLead, com justificativa
+    // obrigatória. Se entrasse, salvar o lead apagaria o motivo já registrado.
     observacoes: t(form.get('observacoes')) || null,
   }).eq('id', id)
-  if (error) return { erro: error.message }
+  if (error) return { erro: traduzErro(error.message) }
 
   await agendarDoLead(sb, id, nome, form)
   recarregar()
@@ -120,7 +143,7 @@ export async function salvarAcao(id: string, form: FormData) {
 export async function excluirLead(id: string) {
   const sb = await supabaseServer()
   const { error } = await sb.from('leads').delete().eq('id', id)
-  if (error) return { erro: error.message }
+  if (error) return { erro: traduzErro(error.message) }
   recarregar()
   return { ok: true }
 }
@@ -145,7 +168,7 @@ export async function criarInteresse(leadId: string, form: FormData) {
     observacoes: t(form.get('observacoes')) || null,
   }).select('id').single()
 
-  if (error) return { erro: error.message }
+  if (error) return { erro: traduzErro(error.message) }
 
   let jaTem = 0
   if (data?.id) {
@@ -162,7 +185,7 @@ export async function definirStatusInteresse(id: string, status: string) {
   }
   const sb = await supabaseServer()
   const { error } = await sb.from('interesses').update({ status }).eq('id', id)
-  if (error) return { erro: error.message }
+  if (error) return { erro: traduzErro(error.message) }
   recarregar()
   return { ok: true }
 }
@@ -170,7 +193,7 @@ export async function definirStatusInteresse(id: string, status: string) {
 export async function excluirInteresse(id: string) {
   const sb = await supabaseServer()
   const { error } = await sb.from('interesses').delete().eq('id', id)
-  if (error) return { erro: error.message }
+  if (error) return { erro: traduzErro(error.message) }
   recarregar()
   return { ok: true }
 }

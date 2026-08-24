@@ -86,6 +86,17 @@ export type Interesse = {
   criado_em: string
 }
 
+/** Justificativas de perda do lead. "Outro" abre um campo de texto livre. */
+export const MOTIVOS_PERDA = [
+  'Comprou em outra loja',
+  'Preço não aprovado',
+  'Não passou no financiamento',
+  'Desistiu da compra',
+  'Não respondeu',
+  'Não encontrou o veículo desejado',
+  'Outro',
+] as const
+
 export const STATUS_ALERTA = ['Novo', 'Visualizado', 'Contatado', 'Negociação', 'Vendido', 'Sem interesse'] as const
 export type StatusAlerta = (typeof STATUS_ALERTA)[number]
 

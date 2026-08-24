@@ -1,6 +1,7 @@
 'use server'
 import { revalidatePath } from 'next/cache'
 import { supabaseServer } from '@/lib/supabase/server'
+import { traduzErro } from '@/lib/erros'
 
 function limpa(s: FormDataEntryValue | null) { return (s ?? '').toString().trim() }
 
@@ -14,7 +15,7 @@ export async function criarTarefa(form: FormData) {
     titulo,
     descricao: limpa(form.get('descricao')) || null,
   })
-  if (error) return { erro: error.message }
+  if (error) return { erro: traduzErro(error.message) }
   revalidatePath('/painel/tarefas'); revalidatePath('/painel')
   return { ok: true }
 }
@@ -22,7 +23,7 @@ export async function criarTarefa(form: FormData) {
 export async function alternarTarefa(id: string, feito: boolean) {
   const sb = await supabaseServer()
   const { error } = await sb.from('tarefas').update({ feito }).eq('id', id)
-  if (error) return { erro: error.message }
+  if (error) return { erro: traduzErro(error.message) }
   revalidatePath('/painel/tarefas'); revalidatePath('/painel')
   return { ok: true }
 }
@@ -30,7 +31,7 @@ export async function alternarTarefa(id: string, feito: boolean) {
 export async function excluirTarefa(id: string) {
   const sb = await supabaseServer()
   const { error } = await sb.from('tarefas').delete().eq('id', id)
-  if (error) return { erro: error.message }
+  if (error) return { erro: traduzErro(error.message) }
   revalidatePath('/painel/tarefas'); revalidatePath('/painel')
   return { ok: true }
 }

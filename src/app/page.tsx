@@ -125,7 +125,6 @@ export function Rodape({ cfg }: { cfg: Awaited<ReturnType<typeof getConfig>> }) 
         <div><b>{cfg.nome}</b><p>{cfg.endereco}<br />Estoque completo da loja</p></div>
         <div><b>Atendimento</b><p>Segunda a sexta, 8h às 18h<br />Sábado, 8h às 13h</p></div>
         <div><b>Falar com {cfg.vendedor}</b><p>{cfg.whatsapp_exibe}<br />Vendedor responsável</p></div>
-        <div><b>Todo carro daqui tem</b><p>Laudo cautelar aprovado<br />Garantia de motor e câmbio<br />Transferência inclusa</p></div>
       </div>
       <div className="st-foot-bar">
         <span>© {new Date().getFullYear()} {cfg.nome} · {cfg.cidade}</span>

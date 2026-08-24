@@ -4,10 +4,10 @@ import { useRouter } from 'next/navigation'
 import { BRL, dataBR, hojeISO } from '@/lib/format'
 import {
   criarInteresse, criarLead, definirStatusInteresse, excluirInteresse,
-  excluirLead, moverLead, salvarAcao,
+  excluirLead, moverLead, perderLead, salvarAcao,
 } from '@/actions/leads'
 import type { LeadCompleto } from '@/app/painel/leads/page'
-import type { Interesse, Veiculo } from '@/lib/types'
+import { MOTIVOS_PERDA, type Interesse, type Veiculo } from '@/lib/types'
 import Modal from '@/components/Modal'
 import { AgendaLead, CamposInteresse, InteresseNoCadastro } from '@/components/LeadExtras'
 
@@ -17,7 +17,6 @@ const COR: Record<string, string> = {
   'Visita agendada': 'var(--ord-4)', 'Visita realizada': 'var(--ord-5)',
   'Proposta': 'var(--ord-6)', 'Fechado': 'var(--good)',
 }
-const MOTIVOS = ['Preço acima do orçamento', 'Comprou em outra loja', 'Não passou no financiamento', 'Sumiu / não respondeu', 'Não gostou do carro', 'Outro']
 const STATUS_INT = ['Aguardando disponibilidade', 'Atendido', 'Cancelado']
 const LIXO = <><path d="M3 6h18" /><path d="M8 6V4h8v2" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /></>
 
@@ -41,6 +40,8 @@ export default function Kanban({ leads, estoque, interesses, hoje }: {
   const [editar, setEditar] = useState<LeadCompleto | null>(null)
   const [apagar, setApagar] = useState<LeadCompleto | null>(null)
   const [interesseDe, setInteresseDe] = useState<LeadCompleto | null>(null)
+  const [perder, setPerder] = useState<LeadCompleto | null>(null)
+  const [motivo, setMotivo] = useState('')
   const [erro, setErro] = useState('')
   const [aviso, setAviso] = useState('')
 
@@ -184,7 +185,16 @@ export default function Kanban({ leads, estoque, interesses, hoje }: {
                 {[...ESTAGIOS, 'Perdido'].map((e) => (
                   <button key={e} type="button" className="mini"
                     style={e === editar.estagio ? { borderColor: 'var(--brand)', color: 'var(--brand)', fontWeight: 700 } : undefined}
-                    onClick={() => rodar(() => moverLead(editar.id, e), () => setEditar(null))}>
+                    onClick={() => {
+                      if (e === 'Perdido') {
+                        // perder exige justificativa: abre o modal próprio
+                        setMotivo(editar.motivo_perda && (MOTIVOS_PERDA as readonly string[]).includes(editar.motivo_perda)
+                          ? editar.motivo_perda : '')
+                        setPerder(editar); setEditar(null); setErro('')
+                        return
+                      }
+                      rodar(() => moverLead(editar.id, e), () => setEditar(null))
+                    }}>
                     {e}
                   </button>
                 ))}
@@ -204,11 +214,15 @@ export default function Kanban({ leads, estoque, interesses, hoje }: {
 
             {editar.estagio === 'Perdido' && (
               <div className="field">
-                <label>Motivo da perda</label>
-                <select name="motivo_perda" defaultValue={editar.motivo_perda ?? ''}>
-                  <option value="">Escolha o motivo</option>
-                  {MOTIVOS.map((m) => <option key={m}>{m}</option>)}
-                </select>
+                <label>Justificativa da perda</label>
+                <div className="just-box">
+                  <span>{editar.motivo_perda || 'sem justificativa registrada'}</span>
+                  <button type="button" className="mini" onClick={() => {
+                    setMotivo(editar.motivo_perda && (MOTIVOS_PERDA as readonly string[]).includes(editar.motivo_perda)
+                      ? editar.motivo_perda : (editar.motivo_perda ? 'Outro' : ''))
+                    setPerder(editar); setEditar(null); setErro('')
+                  }}>Alterar</button>
+                </div>
               </div>
             )}
 
@@ -277,6 +291,37 @@ export default function Kanban({ leads, estoque, interesses, hoje }: {
             preencha só se o cliente foi específico, senão você corre o risco de perder um alerta bom.
           </div>
           <CamposInteresse />
+        </Modal>
+      )}
+
+      {/* ---------------- justificativa da perda ---------------- */}
+      {perder && (
+        <Modal titulo={`Marcar ${perder.nome} como perdido`} ok="Salvar justificativa"
+          erro={erro} pendente={pendente}
+          onCancel={() => { setPerder(null); setErro('') }}
+          form={(fd) => rodar(() => perderLead(perder.id, fd), () => { setPerder(null); setMotivo('') })}>
+          <div className="mtext">
+            Sem o motivo o lead não é fechado. Depois de três meses, essa lista é o dado mais útil
+            que você tem — ela mostra o que faz você perder venda.
+          </div>
+
+          <div className="field">
+            <label>Justificativa da perda <span style={{ color: 'var(--critical)' }}>*</span></label>
+            <select name="motivo_perda" required value={motivo} onChange={(e) => setMotivo(e.target.value)}>
+              <option value="">Escolha o motivo</option>
+              {MOTIVOS_PERDA.map((m) => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </div>
+
+          {motivo === 'Outro' && (
+            <div className="field" style={{ marginBottom: 0 }}>
+              <label>Qual foi o motivo? <span style={{ color: 'var(--critical)' }}>*</span></label>
+              <textarea name="motivo_outro" rows={3} required autoFocus
+                defaultValue={perder.motivo_perda && !(MOTIVOS_PERDA as readonly string[]).includes(perder.motivo_perda)
+                  ? perder.motivo_perda : ''}
+                placeholder="Escreva com as suas palavras o que aconteceu" />
+            </div>
+          )}
         </Modal>
       )}
 

@@ -1,6 +1,7 @@
 'use server'
 import { revalidatePath } from 'next/cache'
 import { supabaseServer } from '@/lib/supabase/server'
+import { traduzErro } from '@/lib/erros'
 import { combina } from '@/lib/casar'
 import { STATUS_ALERTA } from '@/lib/types'
 
@@ -33,7 +34,7 @@ export async function casarVeiculoComInteresses(carro: Carro) {
       achados.map((i) => ({ interesse_id: i.id, lead_id: i.lead_id, veiculo_id: carro.id })),
       { onConflict: 'interesse_id,veiculo_id', ignoreDuplicates: true }
     )
-    if (error) return { novos: 0, erro: error.message }
+    if (error) return { novos: 0, erro: traduzErro(error.message) }
     recarregar()
     return { novos: achados.length }
   } catch (e) {
@@ -64,7 +65,7 @@ export async function casarInteresseComEstoque(interesseId: string) {
       achados.map((c) => ({ interesse_id: i.id, lead_id: i.lead_id, veiculo_id: c.id })),
       { onConflict: 'interesse_id,veiculo_id', ignoreDuplicates: true }
     )
-    if (error) return { novos: 0, erro: error.message }
+    if (error) return { novos: 0, erro: traduzErro(error.message) }
     recarregar()
     return { novos: achados.length }
   } catch (e) {
@@ -79,7 +80,7 @@ export async function definirStatusAlerta(id: string, status: string) {
   const { error } = await sb.from('alertas')
     .update({ status, visto_em: new Date().toISOString() })
     .eq('id', id)
-  if (error) return { erro: error.message }
+  if (error) return { erro: traduzErro(error.message) }
   recarregar()
   return { ok: true }
 }
@@ -91,7 +92,7 @@ export async function marcarAlertasVistos(ids: string[]) {
   const { error } = await sb.from('alertas')
     .update({ status: 'Visualizado', visto_em: new Date().toISOString() })
     .in('id', ids).eq('status', 'Novo')
-  if (error) return { erro: error.message }
+  if (error) return { erro: traduzErro(error.message) }
   recarregar()
   return { ok: true }
 }
@@ -99,7 +100,7 @@ export async function marcarAlertasVistos(ids: string[]) {
 export async function excluirAlerta(id: string) {
   const sb = await supabaseServer()
   const { error } = await sb.from('alertas').delete().eq('id', id)
-  if (error) return { erro: error.message }
+  if (error) return { erro: traduzErro(error.message) }
   recarregar()
   return { ok: true }
 }

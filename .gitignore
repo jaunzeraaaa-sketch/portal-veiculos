@@ -1,15 +1,26 @@
+# dependências e build — o npm recria isso
 node_modules
 .next
 out
 *.tsbuildinfo
 next-env.d.ts
+
+# CHAVES — nunca subir para o GitHub
 .env
 .env.local
 .env*.local
+
+# sistema e editor
 .DS_Store
 .vscode
 *.log
+
+# hospedagem
 .vercel
+
+# gerados por ferramentas de IA
 AGENTS.md
 CLAUDE.md
+
+# backups do instalador, caso alguém coloque dentro do projeto
 backups-portal-veiculos/

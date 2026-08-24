@@ -12,7 +12,6 @@ const ICONES: Record<string, React.ReactNode> = {
   atendimento: <path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.9 8.9 0 0 1-3.8-.9L3 21l1.9-4.6A8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5z" />,
   leadsIcon: <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="3.5" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /></>,
   publicar: <><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="M17 8l-5-5-5 5" /><path d="M12 3.5v13" /></>,
-  followup: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5.2l3.4 2" /></>,
 }
 
 const ITENS = [
@@ -23,7 +22,6 @@ const ITENS = [
   { href: '/painel/publicar', chave: 'publicar', label: 'Publicar', titulo: 'Publicar anúncio' },
   { href: '/painel/vendas', chave: 'vendas', label: 'Minhas vendas', titulo: 'Minhas vendas' },
   { href: '/painel/tarefas', chave: 'tarefas', label: 'Minhas tarefas', titulo: 'Minhas tarefas' },
-  { href: '/painel/followup', chave: 'followup', label: 'Follow-up', titulo: 'Cadência de follow-up' },
   { href: '/painel/vitrine', chave: 'vitrine', label: 'Vitrine', titulo: 'Vitrine pública' },
 ]
 

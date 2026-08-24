@@ -1,5 +1,31 @@
 # Portal Veículos — o que mudou
 
+## Revisão de 24/08/2026 — correções e ajustes
+
+### Erros corrigidos
+- **"violates check constraint veiculos_status_check"** ao clicar em Suspenso e
+  **"Could not find the table public.interesses"** ao salvar uma procura: os dois eram a
+  mesma causa — as migrações 02 e 03 ainda não tinham sido rodadas no Supabase. Agora o
+  painel **detecta isso ao abrir** e mostra uma faixa dizendo exatamente qual arquivo rodar,
+  em vez de deixar o erro estourar só na hora de salvar. E toda mensagem de erro do banco
+  passou a ser traduzida para português com a instrução do que fazer.
+
+### Ajustes
+- **Lead perdido agora exige justificativa.** Clicar em Perdido abre um modal próprio com a
+  lista de motivos; "Outro" abre campo de texto livre. Não salva em branco, e o motivo fica
+  gravado no lead e visível depois.
+- **Card do veículo ao passar o mouse no Estoque**, com o mesmo componente já usado em
+  Minhas vendas — ficha, números, situação do anúncio e margem.
+- **Filtros em Minhas vendas:** data inicial, data final e cliente, combinados, com contador
+  de resultados, soma do período e botão de limpar.
+- **Menu hambúrguer no celular.** Abaixo de 900px o menu vira gaveta; testado em 320, 375,
+  390 e 430 px sem nada estourar a largura da tela.
+- **Rodapé da vitrine:** saiu a coluna "Todo carro daqui tem".
+- **Follow-up saiu do menu.** O código continua inteiro em `src/components/Cadencia.tsx` —
+  a página só redireciona para o painel.
+
+---
+
 ## Versão de 24/08/2026
 
 Este pacote reúne tudo que foi desenvolvido no dia. São quatro frentes.

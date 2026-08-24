@@ -1,6 +1,7 @@
 'use server'
 import { revalidatePath } from 'next/cache'
 import { supabaseServer } from '@/lib/supabase/server'
+import { traduzErro } from '@/lib/erros'
 
 function limpa(s: FormDataEntryValue | null) { return (s ?? '').toString().trim() }
 function num(s: FormDataEntryValue | null) { return Number((s ?? '0').toString().replace(/[^\d.-]/g, '')) || 0 }
@@ -32,7 +33,7 @@ export async function registrarVenda(form: FormData) {
     troca_cor: temTroca ? limpa(form.get('troca_cor')) : null,
     troca_valor: temTroca ? trocaValor : null,
   })
-  if (error) return { erro: error.message }
+  if (error) return { erro: traduzErro(error.message) }
 
   // o carro vendido sai da vitrine
   await sb.from('veiculos').update({ status: 'vendido' }).eq('id', v.id)
@@ -64,7 +65,7 @@ export async function registrarVenda(form: FormData) {
 export async function excluirVenda(id: string) {
   const sb = await supabaseServer()
   const { error } = await sb.from('vendas').delete().eq('id', id)
-  if (error) return { erro: error.message }
+  if (error) return { erro: traduzErro(error.message) }
   revalidatePath('/painel/vendas')
   return { ok: true }
 }

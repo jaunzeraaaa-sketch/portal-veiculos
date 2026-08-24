@@ -1,6 +1,7 @@
 'use server'
 import { revalidatePath } from 'next/cache'
 import { supabaseServer } from '@/lib/supabase/server'
+import { traduzErro } from '@/lib/erros'
 
 export async function salvarConfig(form: FormData) {
   const sb = await supabaseServer()
@@ -10,7 +11,7 @@ export async function salvarConfig(form: FormData) {
     whatsapp: t('whatsapp').replace(/\D/g, ''), whatsapp_exibe: t('whatsapp_exibe'),
     endereco: t('endereco'), atualizado_em: new Date().toISOString(),
   }).eq('id', 1)
-  if (error) return { erro: error.message }
+  if (error) return { erro: traduzErro(error.message) }
   revalidatePath('/'); revalidatePath('/painel/vitrine')
   return { ok: true }
 }

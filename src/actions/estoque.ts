@@ -1,6 +1,7 @@
 'use server'
 import { revalidatePath } from 'next/cache'
 import { supabaseServer } from '@/lib/supabase/server'
+import { traduzErro } from '@/lib/erros'
 import { OPCIONAIS, CONDICOES } from '@/lib/opcionais'
 import { casarVeiculoComInteresses } from '@/actions/alertas'
 
@@ -65,7 +66,7 @@ export async function criarVeiculo(form: FormData) {
     fotos: fotosDe(form),
     status: limpa(form.get('status')) === 'suspenso' ? 'suspenso' : 'disponivel',
   }).select('id, marca, modelo, versao, ano_fab, ano_mod, preco').single()
-  if (error) return { erro: error.message }
+  if (error) return { erro: traduzErro(error.message) }
 
   // carro novo no pátio: procura clientes que estavam esperando exatamente ele
   let avisados = 0
@@ -90,7 +91,7 @@ export async function atualizarVeiculo(id: string, form: FormData) {
     condicoes: marcados(form, 'condicoes'),
     fotos: fotosDe(form),
   }).eq('id', id)
-  if (error) return { erro: error.message }
+  if (error) return { erro: traduzErro(error.message) }
   recarregar()
   return { ok: true }
 }
@@ -103,7 +104,7 @@ export async function definirSituacao(id: string, situacao: string) {
   if (!SITUACOES.includes(situacao as SituacaoVitrine)) return { erro: 'Situação inválida.' }
   const sb = await supabaseServer()
   const { error } = await sb.from('veiculos').update({ status: situacao }).eq('id', id)
-  if (error) return { erro: error.message }
+  if (error) return { erro: traduzErro(error.message) }
   recarregar()
   return { ok: true }
 }
@@ -113,7 +114,7 @@ export async function publicarVeiculos(ids: string[]) {
   if (!ids.length) return { erro: 'Escolha pelo menos um veículo.' }
   const sb = await supabaseServer()
   const { error } = await sb.from('veiculos').update({ status: 'disponivel' }).in('id', ids)
-  if (error) return { erro: error.message }
+  if (error) return { erro: traduzErro(error.message) }
   recarregar()
   return { ok: true }
 }
@@ -125,7 +126,7 @@ export async function marcarVendido(id: string) {
 export async function excluirVeiculo(id: string) {
   const sb = await supabaseServer()
   const { error } = await sb.from('veiculos').delete().eq('id', id)
-  if (error) return { erro: error.message }
+  if (error) return { erro: traduzErro(error.message) }
   recarregar()
   return { ok: true }
 }

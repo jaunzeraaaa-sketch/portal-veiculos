@@ -1,7 +1,8 @@
 'use client'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { BRL, NUM, pct, situacao } from '@/lib/format'
+import { BRL, NUM, pct, situacao, dataBR } from '@/lib/format'
+import { usePop } from '@/lib/usePop'
 import { atualizarVeiculo, criarVeiculo, excluirVeiculo, marcarVendido } from '@/actions/estoque'
 import type { Veiculo } from '@/lib/types'
 import Modal from '@/components/Modal'
@@ -45,6 +46,9 @@ export default function EstoqueTabela({ carros }: { carros: Veiculo[] }) {
   const [vender, setVender] = useState<Veiculo | null>(null)
   const [apagar, setApagar] = useState<Veiculo | null>(null)
   const [erro, setErro] = useState('')
+
+  // mesmo cartão de hover de Minhas vendas — componente reaproveitado
+  const { ativo, setAtivo, pos, pop, abrir, fechar, segurar } = usePop<Veiculo>(372)
 
   const lista = carros.filter((c) => {
     const txt = `${c.cod} ${c.marca} ${c.modelo} ${c.versao} ${c.cor} ${c.placa ?? ''}`.toLowerCase()
@@ -94,12 +98,13 @@ export default function EstoqueTabela({ carros }: { carros: Veiculo[] }) {
               <th>Situação</th><th style={{ textAlign: 'right' }}>Ações</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody onMouseLeave={fechar}>
             {lista.length ? lista.map((c) => {
               const s = situacao(c)
               const vendido = c.status === 'vendido'
               return (
-                <tr key={c.id} className={vendido ? 'sold' : ''}>
+                <tr key={c.id} className={`sale-row${vendido ? ' sold' : ''}`}
+                  onMouseMove={(e) => abrir(c, e)}>
                   <td><Miniatura carro={c} /></td>
                   <td>
                     <div className="car-name">{c.marca} {c.modelo}</div>
@@ -127,6 +132,62 @@ export default function EstoqueTabela({ carros }: { carros: Veiculo[] }) {
             }) : <tr><td colSpan={12} className="empty">Nenhum veículo com esse filtro.</td></tr>}
           </tbody>
         </table>
+      </div>
+
+      <div ref={pop} className={`sale-pop${ativo ? ' on' : ''}`} style={{ top: pos.top, left: pos.left }}
+        onMouseEnter={segurar} onMouseLeave={() => setAtivo(null)}>
+        {ativo && (() => {
+          const s = situacao(ativo)
+          const margem = Number(ativo.preco) - Number(ativo.custo)
+          return (
+            <>
+              <div className="sp-topo">
+                <Miniatura carro={ativo} grande />
+                <div>
+                  <h4>{ativo.marca} {ativo.modelo}</h4>
+                  <div className="meta">{ativo.versao} · {ativo.ano_fab}/{ativo.ano_mod}</div>
+                  <span className={`chip ${s.cls}`} style={{ marginTop: 6 }}><span className="dot" />{s.txt}</span>
+                </div>
+              </div>
+
+              <div className="sp-sec"><h5>Ficha do veículo</h5>
+                <div className="sp-grid">
+                  <div><div className="k">Código</div><div className="v mono">{ativo.cod}</div></div>
+                  <div><div className="k">Placa</div><div className="v mono">{ativo.placa ?? '—'}</div></div>
+                  <div><div className="k">Quilometragem</div><div className="v">{NUM(ativo.km)} km</div></div>
+                  <div><div className="k">Cor</div><div className="v">{ativo.cor || '—'}</div></div>
+                  <div><div className="k">Câmbio</div><div className="v">{ativo.cambio}</div></div>
+                  <div><div className="k">Combustível</div><div className="v">{ativo.combustivel}</div></div>
+                </div>
+              </div>
+
+              <div className="sp-sec"><h5>Números</h5>
+                <div className="sp-grid">
+                  <div><div className="k">Preço de anúncio</div><div className="v">{BRL(ativo.preco)}</div></div>
+                  <div><div className="k">Tabela FIPE</div><div className="v">{BRL(ativo.fipe)}</div></div>
+                  <div><div className="k">Diferença da FIPE</div><div className="v">{pct(ativo.delta_fipe)}</div></div>
+                  <div><div className="k">Custo total</div><div className="v">− {BRL(ativo.custo)}</div></div>
+                  <div><div className="k">Dias no pátio</div><div className="v">{ativo.dias_estoque ?? 0}</div></div>
+                  <div><div className="k">Entrou em</div><div className="v">{ativo.data_entrada ? dataBR(ativo.data_entrada) : '—'}</div></div>
+                </div>
+              </div>
+
+              <div className="sp-sec"><h5>Anúncio</h5>
+                <div className="sp-grid">
+                  <div><div className="k">Fotos</div><div className="v">{ativo.fotos?.length ? `${ativo.fotos.length} publicada${ativo.fotos.length > 1 ? 's' : ''}` : 'nenhuma'}</div></div>
+                  <div><div className="k">Opcionais marcados</div><div className="v">{ativo.opcionais?.length ?? 0}</div></div>
+                  <div><div className="k">Condições marcadas</div><div className="v">{ativo.condicoes?.length ?? 0}</div></div>
+                  <div><div className="k">Na vitrine</div><div className="v">{ativo.status === 'disponivel' ? 'sim' : 'não'}</div></div>
+                </div>
+                {!ativo.fotos?.length && ativo.status === 'disponivel' && (
+                  <div className="no-trade">Está na vitrine sem foto — anúncio sem foto quase não recebe contato.</div>
+                )}
+              </div>
+
+              <div className="sp-total"><span>Margem potencial</span><b>{BRL(margem)}</b></div>
+            </>
+          )
+        })()}
       </div>
 
       {novo && (
