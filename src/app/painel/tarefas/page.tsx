@@ -7,8 +7,12 @@ export const dynamic = 'force-dynamic'
 
 export default async function Tarefas() {
   const sb = await supabaseServer()
-  const { data } = await sb.from('tarefas').select('*').order('data').order('hora')
+  const [{ data }, { data: ls }] = await Promise.all([
+    sb.from('tarefas').select('*').order('data').order('hora'),
+    sb.from('leads').select('id, nome'),
+  ])
   const tarefas = (data ?? []) as Tarefa[]
+  const leads = Object.fromEntries(((ls ?? []) as { id: string; nome: string }[]).map((l) => [l.id, l.nome]))
   const hoje = hojeISO()
   const agora = new Date()
 
@@ -20,7 +24,7 @@ export default async function Tarefas() {
   return (
     <>
       <div className="page-head">
-        <p>Seu calendário de compromissos. Quando chega a hora da atividade, o sino no topo da tela acende com o aviso.</p>
+        <p>Seu calendário de compromissos. Quando chega a hora da atividade, o sino no topo da tela acende com o aviso. As tarefas criadas a partir de um lead trazem o nome do cliente e o atalho para o funil.</p>
       </div>
       <div className="grid g-5" style={{ marginBottom: 16 }}>
         <div className="tile"><div className="label">Chegaram na hora</div><div className="value" style={{ color: 'var(--critical)' }}>{vencidas}</div><div className="delta down">esperando você</div></div>
@@ -32,7 +36,7 @@ export default async function Tarefas() {
           <div className="label">para marcar data, horário e lembrete</div>
         </div>
       </div>
-      <Calendario tarefas={tarefas} />
+      <Calendario tarefas={tarefas} leads={leads} />
     </>
   )
 }

@@ -16,8 +16,9 @@ export type Veiculo = {
   custo: number
   descricao: string | null
   opcionais: string[] | null
+  condicoes: string[] | null
   fotos: string[] | null
-  status: 'disponivel' | 'reservado' | 'vendido'
+  status: 'disponivel' | 'suspenso' | 'reservado' | 'vendido'
   data_entrada: string
   dias_estoque?: number
   delta_fipe?: number | null
@@ -52,6 +53,8 @@ export type Tarefa = {
   titulo: string
   descricao: string | null
   feito: boolean
+  tipo: 'tarefa' | 'lembrete'
+  lead_id: string | null
 }
 
 export type Lead = {
@@ -63,7 +66,55 @@ export type Lead = {
   estagio: string
   proxima_acao: string | null
   proxima_acao_data: string | null
+  motivo_perda: string | null
+  observacoes: string | null
   veiculo_id: string | null
+}
+
+/** Carro que o cliente procura e que ainda não está no pátio. */
+export type Interesse = {
+  id: string
+  lead_id: string
+  marca: string
+  modelo: string
+  versao: string | null
+  ano: number | null
+  ano_ate: number | null
+  preco_ate: number | null
+  observacoes: string | null
+  status: 'Aguardando disponibilidade' | 'Atendido' | 'Cancelado'
+  criado_em: string
+}
+
+export const STATUS_ALERTA = ['Novo', 'Visualizado', 'Contatado', 'Negociação', 'Vendido', 'Sem interesse'] as const
+export type StatusAlerta = (typeof STATUS_ALERTA)[number]
+
+/** Encontro entre um interesse e um veículo que entrou no estoque. */
+export type Alerta = {
+  id: string
+  status: StatusAlerta
+  criado_em: string
+  visto_em: string | null
+  lead_id: string
+  interesse_id: string
+  veiculo_id: string
+  lead_nome: string
+  lead_telefone: string | null
+  busca_marca: string
+  busca_modelo: string
+  busca_versao: string | null
+  busca_ano: number | null
+  cod: string
+  marca: string
+  modelo: string
+  versao: string
+  ano_fab: number
+  ano_mod: number
+  preco: number
+  km: number
+  cor: string
+  veiculo_status: string
+  fotos: string[] | null
 }
 
 export type Config = {

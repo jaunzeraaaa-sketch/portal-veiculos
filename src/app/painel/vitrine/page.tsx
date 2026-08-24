@@ -2,25 +2,33 @@ import Link from 'next/link'
 import { supabaseServer } from '@/lib/supabase/server'
 import { getConfig } from '@/lib/loja'
 import ConfigForm from '@/components/ConfigForm'
+import VitrineLista from '@/components/VitrineLista'
+import type { Veiculo } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
 
 export default async function VitrinePainel() {
   const cfg = await getConfig()
   const sb = await supabaseServer()
-  const { count } = await sb.from('veiculos').select('*', { count: 'exact', head: true }).eq('status', 'disponivel')
+  const { data } = await sb.from('veiculos_view').select('*').order('data_entrada', { ascending: false })
+  const carros = (data ?? []) as Veiculo[]
+
+  const ativos = carros.filter((c) => c.status === 'disponivel')
+  const semFoto = ativos.filter((c) => !c.fotos?.length).length
 
   return (
     <>
       <div className="panel-top">
-        <p>Esta é a página que o comprador abre. Ela é gerada a partir do estoque — carro marcado como vendido some daqui sozinho.</p>
+        <p>Esta é a página que o comprador abre. Aqui você decide quais carros do estoque ficam visíveis para ele.</p>
         <Link className="btn-client" href="/" target="_blank">
           <svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z" /><circle cx="12" cy="12" r="3" /></svg>
           VER COMO O CLIENTE
         </Link>
       </div>
 
-      <div className="grid g-2">
+      <VitrineLista carros={carros} />
+
+      <div className="grid g-2" style={{ marginTop: 16 }}>
         <div className="card">
           <div className="card-head"><h2>Identidade da loja</h2></div>
           <div className="sub">Esses dados aparecem no cabeçalho, no rodapé e no link de WhatsApp da vitrine.</div>
@@ -36,7 +44,13 @@ export default async function VitrinePainel() {
           <div className="linkbox">
             wa.me/{cfg.whatsapp}?text=Olá!%20Tenho%20interesse%20no%20<b>ONIX-2021-A7X3</b>
           </div>
-          <div className="kv" style={{ marginTop: 12 }}><span>Carros publicados agora</span><strong>{count ?? 0}</strong></div>
+          <div className="kv" style={{ marginTop: 12 }}><span>Carros publicados agora</span><strong>{ativos.length}</strong></div>
+          <div className="kv">
+            <span>Publicados sem foto</span>
+            <strong style={{ color: semFoto ? 'var(--critical)' : 'var(--good-text)' }}>
+              {semFoto || '✓ nenhum'}
+            </strong>
+          </div>
           <div className="kv"><span>Atualização da vitrine</span><strong>automática a cada alteração</strong></div>
           <div className="kv"><span>Acesso</span><strong>livre, sem login</strong></div>
           <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 12, lineHeight: 1.6 }}>

@@ -1,10 +1,10 @@
 import Link from 'next/link'
-import Image from 'next/image'
 import { supabaseServer, supabaseConfigurado } from '@/lib/supabase/server'
 import { getConfig } from '@/lib/loja'
 import { BRL, NUM, linkWhats } from '@/lib/format'
 import type { Veiculo } from '@/lib/types'
 import CarroSvg from '@/components/CarroSvg'
+import TopoVitrine, { MarcaCarro } from '@/components/TopoVitrine'
 import Filtros from '@/components/Filtros'
 import AvisoSetup from '@/components/AvisoSetup'
 
@@ -33,8 +33,6 @@ export default async function Vitrine({ searchParams }: { searchParams: Promise<
     }
   }
   const marcas = [...new Set(carros.map((c) => c.marca))].sort()
-  const menor = carros.length ? Math.min(...carros.map((c) => c.preco)) : 0
-  const total = carros.length
 
   if (q.marca && q.marca !== 'todas') carros = carros.filter((c) => c.marca === q.marca)
   if (q.faixa && q.faixa !== 'todas') {
@@ -54,34 +52,18 @@ export default async function Vitrine({ searchParams }: { searchParams: Promise<
 
   return (
     <div className="site">
-      <header className="st-head">
-        <Link href="/" className="st-logo">
-          <Image src="/logo-escura.png" alt={cfg.nome} width={420} height={167} className="st-logo-img" priority />
-          <span className="st-city">{cfg.cidade}</span>
-        </Link>
-        <div className="st-cta">
-          <span className="st-fone">{cfg.whatsapp_exibe}</span>
-          <a className="st-wa" href={`https://wa.me/${cfg.whatsapp}`} target="_blank" rel="noopener noreferrer">
-            Falar no WhatsApp
-          </a>
-        </div>
-      </header>
+      <TopoVitrine nome={cfg.nome} cidade={cfg.cidade} telefone={cfg.whatsapp_exibe}
+        zap={`https://wa.me/${cfg.whatsapp}`} />
 
       <section className="st-hero">
+        <MarcaCarro />
         <div className="st-hero-in">
-          <div>
-            <div className="st-seller">
-              <span className="av">{iniciais}</span>
-              <span>Atendimento direto com <b>{cfg.vendedor}</b></span>
-            </div>
-            <h1>O estoque da {cfg.nome},<br />no seu WhatsApp</h1>
-            <p>Escolha o carro aqui e me chame. Eu separo, deixo pronto e te espero com o laudo na mão.</p>
+          <div className="st-seller">
+            <span className="av">{iniciais}</span>
+            <span>Atendimento direto com <b>{cfg.vendedor}</b></span>
           </div>
-          <div className="st-facts">
-            <div><div className="n">{total}</div><div className="l">carros no pátio hoje</div></div>
-            <div><div className="n">{BRL(menor)}</div><div className="l">a partir de</div></div>
-            <div><div className="n">100%</div><div className="l">com laudo cautelar</div></div>
-          </div>
+          <h1>Seu próximo carro,<br />na palma da sua mão</h1>
+          <p>Escolha o carro aqui e me chame. Eu separo, deixo pronto e te espero com o laudo na mão.</p>
         </div>
       </section>
 

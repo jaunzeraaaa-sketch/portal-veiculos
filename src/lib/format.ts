@@ -25,6 +25,7 @@ export const slug = (s: string) =>
 /** Situação do veículo, igual à regra do painel. */
 export function situacao(v: { dias_estoque?: number; delta_fipe?: number | null; status: string }) {
   if (v.status === 'vendido') return { cls: 'neutral', txt: 'Vendido', prio: 0 }
+  if (v.status === 'suspenso') return { cls: 'neutral', txt: 'Fora da vitrine', prio: 0 }
   if (v.status === 'reservado') return { cls: 'warn', txt: 'Reservado', prio: 0 }
   const dias = v.dias_estoque ?? 0
   const d = v.delta_fipe ?? 0

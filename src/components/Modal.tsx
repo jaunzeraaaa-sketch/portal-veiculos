@@ -5,6 +5,8 @@ type Props = {
   titulo: string
   ok?: string
   perigo?: boolean
+  /** modal mais largo, para formulários com fotos e listas de marcação */
+  largo?: boolean
   erro?: string
   pendente?: boolean
   children: React.ReactNode
@@ -13,7 +15,7 @@ type Props = {
   form?: (fd: FormData) => void
 }
 
-export default function Modal({ titulo, ok = 'Confirmar', perigo, erro, pendente, children, onCancel, onConfirm, form }: Props) {
+export default function Modal({ titulo, ok = 'Confirmar', perigo, largo, erro, pendente, children, onCancel, onConfirm, form }: Props) {
   const ref = useRef<HTMLFormElement>(null)
 
   useEffect(() => {
@@ -30,7 +32,7 @@ export default function Modal({ titulo, ok = 'Confirmar', perigo, erro, pendente
 
   return (
     <div className="modal-bg" onMouseDown={(e) => { if (e.target === e.currentTarget) onCancel() }}>
-      <form className="modal" ref={ref} onSubmit={enviar} role="dialog" aria-modal="true" aria-label={titulo}>
+      <form className={largo ? 'modal largo' : 'modal'} ref={ref} onSubmit={enviar} role="dialog" aria-modal="true" aria-label={titulo}>
         <h3>{titulo}</h3>
         <div>{children}</div>
         {erro && <div className="login-erro" style={{ marginTop: 12, marginBottom: 0 }}>{erro}</div>}

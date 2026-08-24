@@ -38,6 +38,37 @@ Custo para começar: **US$ 20/mês** (Vercel Pro) + **R$ 40/ano** de domínio. P
 
 ---
 
+## 2.-1 ⚠️ Migração 03 — leads, procuras e alertas
+
+Esta versão trouxe **observação no lead, tarefa e lembrete ligados ao lead, cadastro do carro que o
+cliente procura e o alerta automático quando esse carro entra no estoque**.
+
+Se o seu banco já existe, rode **uma vez**:
+
+1. Supabase → **SQL Editor → New query**
+2. Abra `supabase/migracao-03-leads-interesses.sql`, copie tudo, cole e clique em **Run**
+3. Tem que aparecer *Success. No rows returned*
+
+Se você está criando o banco agora, o `schema.sql` já vem com tudo — pule este passo.
+
+---
+
+## 2.0 ⚠️ Atualizando de uma versão anterior? Rode a migração 02
+
+Esta versão trouxe **fotos, opcionais, condições e o controle de vitrine (ativo / suspenso / vendido)**.
+Isso exigiu duas mudanças no banco. Se o seu banco já existe, faça isto **uma vez**:
+
+1. Supabase → **SQL Editor → New query**
+2. Abra o arquivo `supabase/migracao-02-vitrine-fotos.sql`, copie tudo, cole e clique em **Run**
+3. Tem que aparecer *Success. No rows returned*
+
+Se você ainda não criou o banco, ignore este passo — o `schema.sql` já vem com tudo.
+
+Também confirme que o balde de fotos existe: **Storage → New bucket → nome `fotos` → marque Public**.
+Sem ele, o botão de tirar foto avisa que o balde não foi encontrado.
+
+---
+
 ## 2.1 Se você baixou a versão anterior deste projeto
 
 A primeira versão vinha com **Next.js 15.1.6**, que tem uma falha crítica de execução remota de código (CVE-2025-66478, nota 10 de 10). Já corrigi — este pacote vem com Next 16, sem nenhum alerta de segurança.
@@ -280,6 +311,3 @@ Na ordem que faz sentido ligar, e o que cada uma exige:
 **Deploy falhou na Vercel** — quase sempre é variável de ambiente faltando. Confira se todas as linhas do `.env.local` estão em Settings → Environment Variables, e clique em **Redeploy**.
 
 **Projeto pausado no Supabase** — entre no painel do Supabase e clique em **Restore**. Considere subir para o Pro se acontecer com frequência.
-# portal-veiculos
-# portal-veiculos
-# portal-veiculos

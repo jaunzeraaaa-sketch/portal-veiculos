@@ -1,6 +1,7 @@
 'use client'
 import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { hojeISO } from '@/lib/format'
 import { alternarTarefa, criarTarefa, excluirTarefa } from '@/actions/tarefas'
 import type { Tarefa } from '@/lib/types'
@@ -11,7 +12,11 @@ const DOW = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb']
 const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 const LIXO = <><path d="M3 6h18" /><path d="M8 6V4h8v2" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /></>
 
-export default function Calendario({ tarefas }: { tarefas: Tarefa[] }) {
+export default function Calendario({ tarefas, leads = {} }: {
+  tarefas: Tarefa[]
+  /** id do lead → nome, para mostrar de quem é a tarefa */
+  leads?: Record<string, string>
+}) {
   const router = useRouter()
   const [pendente, iniciar] = useTransition()
   const hoje = hojeISO()
@@ -95,8 +100,16 @@ export default function Calendario({ tarefas }: { tarefas: Tarefa[] }) {
               onClick={() => acao(() => alternarTarefa(t.id, !t.feito))}>✓</button>
             <span className="hr">{t.hora.slice(0, 5)}</span>
             <div style={{ flex: 1 }}>
-              <div className="tt2">{t.titulo}</div>
+              <div className="tt2">
+                {t.titulo}
+                {t.tipo === 'lembrete' && <span className="tag-tipo">lembrete</span>}
+              </div>
               {t.descricao && <div className="dd">{t.descricao}</div>}
+              {t.lead_id && (
+                <Link className="tag-lead" href="/painel/leads" title="Abrir o funil de leads">
+                  👤 {leads[t.lead_id] ?? 'lead'}
+                </Link>
+              )}
             </div>
             <div className="acts">
               <button className="ia danger" title="Excluir" onClick={() => setApagar(t)}>

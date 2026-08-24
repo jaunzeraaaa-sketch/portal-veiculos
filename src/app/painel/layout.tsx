@@ -4,7 +4,7 @@ import { getConfig } from '@/lib/loja'
 import SidebarNav from '@/components/SidebarNav'
 import Sino from '@/components/Sino'
 import BotaoTema from '@/components/BotaoTema'
-import type { Tarefa } from '@/lib/types'
+import type { Alerta, Tarefa } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,12 +13,15 @@ export default async function PainelLayout({ children }: { children: React.React
   const cfg = await getConfig()
   const { data: { user } } = await sb.auth.getUser()
 
-  const { data: tarefas } = await sb
-    .from('tarefas')
-    .select('*')
-    .eq('feito', false)
-    .lte('data', new Date().toISOString().slice(0, 10))
-    .order('data', { ascending: false })
+  const [{ data: tarefas }, { data: alertas }] = await Promise.all([
+    sb.from('tarefas').select('*')
+      .eq('feito', false)
+      .lte('data', new Date().toISOString().slice(0, 10))
+      .order('data', { ascending: false }),
+    sb.from('alertas_view').select('*')
+      .eq('status', 'Novo')
+      .order('criado_em', { ascending: false }),
+  ])
 
   const iniciais = cfg.vendedor.split(' ').slice(0, 2).map((w) => w[0]).join('').toUpperCase()
 
@@ -51,7 +54,7 @@ export default async function PainelLayout({ children }: { children: React.React
         <header className="topbar">
           <div className="topbar-inner">
             <h1 id="pageTitle">Painel</h1>
-            <Sino tarefas={(tarefas ?? []) as Tarefa[]} />
+            <Sino tarefas={(tarefas ?? []) as Tarefa[]} alertas={(alertas ?? []) as Alerta[]} />
             <div className="top-av">{iniciais}</div>
           </div>
         </header>

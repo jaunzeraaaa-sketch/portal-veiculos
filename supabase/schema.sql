@@ -22,9 +22,10 @@ create table if not exists public.veiculos (
   custo       numeric(12,2) not null default 0,
   descricao   text,
   opcionais   text[] default '{}',
+  condicoes   text[] default '{}',
   fotos       text[] default '{}',
   status      text not null default 'disponivel'
-              check (status in ('disponivel','reservado','vendido')),
+              check (status in ('disponivel','suspenso','reservado','vendido')),
   data_entrada date not null default current_date,
   criado_em   timestamptz not null default now()
 );
@@ -97,9 +98,59 @@ create table if not exists public.tarefas (
   descricao text,
   feito     boolean not null default false,
   lead_id   uuid references public.leads(id) on delete set null,
+  tipo      text not null default 'tarefa' check (tipo in ('tarefa','lembrete')),
   criado_em timestamptz not null default now()
 );
 create index if not exists tarefas_data_idx on public.tarefas(data);
+create index if not exists tarefas_lead_idx on public.tarefas(lead_id);
+
+-- ---------- INTERESSES (carro que o cliente procura e ainda não temos) ----------
+create table if not exists public.interesses (
+  id          uuid primary key default gen_random_uuid(),
+  lead_id     uuid not null references public.leads(id) on delete cascade,
+  marca       text not null,
+  modelo      text not null,
+  versao      text,
+  ano         int,
+  ano_ate     int,
+  preco_ate   numeric(12,2),
+  observacoes text,
+  status      text not null default 'Aguardando disponibilidade'
+              check (status in ('Aguardando disponibilidade','Atendido','Cancelado')),
+  criado_em   timestamptz not null default now()
+);
+create index if not exists interesses_lead_idx   on public.interesses(lead_id);
+create index if not exists interesses_status_idx on public.interesses(status);
+create index if not exists interesses_busca_idx  on public.interesses(lower(marca), lower(modelo));
+
+-- ---------- ALERTAS (o carro procurado entrou no estoque) ----------
+create table if not exists public.alertas (
+  id           uuid primary key default gen_random_uuid(),
+  interesse_id uuid not null references public.interesses(id) on delete cascade,
+  lead_id      uuid not null references public.leads(id)      on delete cascade,
+  veiculo_id   uuid not null references public.veiculos(id)   on delete cascade,
+  status       text not null default 'Novo'
+               check (status in ('Novo','Visualizado','Contatado','Negociação','Vendido','Sem interesse')),
+  criado_em    timestamptz not null default now(),
+  visto_em     timestamptz
+);
+-- impede o mesmo aviso de aparecer duas vezes
+create unique index if not exists alertas_unico on public.alertas(interesse_id, veiculo_id);
+create index if not exists alertas_status_idx on public.alertas(status);
+create index if not exists alertas_lead_idx   on public.alertas(lead_id);
+
+create or replace view public.alertas_view as
+  select a.id, a.status, a.criado_em, a.visto_em,
+         a.lead_id, a.interesse_id, a.veiculo_id,
+         l.nome as lead_nome, l.telefone as lead_telefone,
+         i.marca as busca_marca, i.modelo as busca_modelo,
+         i.versao as busca_versao, i.ano as busca_ano,
+         v.cod, v.marca, v.modelo, v.versao, v.ano_fab, v.ano_mod,
+         v.preco, v.km, v.cor, v.status as veiculo_status, v.fotos
+    from public.alertas a
+    join public.leads      l on l.id = a.lead_id
+    join public.interesses i on i.id = a.interesse_id
+    join public.veiculos   v on v.id = a.veiculo_id;
 
 -- ---------- CONFIGURAÇÃO DA LOJA ----------
 create table if not exists public.config (
@@ -123,6 +174,8 @@ alter table public.veiculos enable row level security;
 alter table public.leads    enable row level security;
 alter table public.vendas   enable row level security;
 alter table public.tarefas  enable row level security;
+alter table public.interesses enable row level security;
+alter table public.alertas    enable row level security;
 alter table public.config   enable row level security;
 
 -- VEÍCULOS: qualquer visitante lê os disponíveis; só quem tem login altera
@@ -147,12 +200,18 @@ drop policy if exists vendas_dono on public.vendas;
 create policy vendas_dono on public.vendas for all to authenticated using (true) with check (true);
 drop policy if exists tarefas_dono on public.tarefas;
 create policy tarefas_dono on public.tarefas for all to authenticated using (true) with check (true);
+drop policy if exists interesses_dono on public.interesses;
+create policy interesses_dono on public.interesses for all to authenticated using (true) with check (true);
+drop policy if exists alertas_dono on public.alertas;
+create policy alertas_dono on public.alertas for all to authenticated using (true) with check (true);
 
 -- As views herdam a permissão de quem consulta
 alter view public.veiculos_view set (security_invoker = on);
 alter view public.vendas_view   set (security_invoker = on);
+alter view public.alertas_view  set (security_invoker = on);
 grant select on public.veiculos_view to anon, authenticated;
 grant select on public.vendas_view   to authenticated;
+grant select on public.alertas_view  to authenticated;
 
 -- =====================================================================
 -- ARMAZENAMENTO DAS FOTOS

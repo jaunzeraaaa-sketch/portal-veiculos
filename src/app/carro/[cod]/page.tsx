@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { supabaseServer, supabaseConfigurado } from '@/lib/supabase/server'
@@ -7,6 +6,7 @@ import { getConfig } from '@/lib/loja'
 import { BRL, NUM, linkWhats } from '@/lib/format'
 import type { Veiculo } from '@/lib/types'
 import CarroSvg from '@/components/CarroSvg'
+import TopoVitrine, { IconeWhats } from '@/components/TopoVitrine'
 import { Rodape } from '@/app/page'
 
 export const revalidate = 60
@@ -57,16 +57,7 @@ export default async function Ficha({ params }: { params: Promise<{ cod: string 
 
   return (
     <div className="site">
-      <header className="st-head">
-        <Link href="/" className="st-logo">
-          <Image src="/logo-escura.png" alt={cfg.nome} width={420} height={167} className="st-logo-img" priority />
-          <span className="st-city">{cfg.cidade}</span>
-        </Link>
-        <div className="st-cta">
-          <span className="st-fone">{cfg.whatsapp_exibe}</span>
-          <a className="st-wa" href={zap} target="_blank" rel="noopener noreferrer">Falar no WhatsApp</a>
-        </div>
-      </header>
+      <TopoVitrine nome={cfg.nome} cidade={cfg.cidade} telefone={cfg.whatsapp_exibe} zap={zap} linha />
 
       <main className="st-body">
         <Link href="/" className="st-back">← Voltar para o estoque</Link>
@@ -110,10 +101,14 @@ export default async function Ficha({ params }: { params: Promise<{ cod: string 
             </div>
 
             <div className="st-selo">
-              <span>Laudo cautelar</span><span>Garantia 3 meses</span><span>Revisões em dia</span>
+              {(c.condicoes?.length
+                ? c.condicoes
+                : ['Laudo cautelar', 'Garantia 3 meses', 'Revisões em dia']
+              ).map((s) => <span key={s}>{s}</span>)}
             </div>
 
-            <a className="st-cta-big" href={zap} target="_blank" rel="noopener noreferrer" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>
+            <a className="st-cta-big" href={zap} target="_blank" rel="noopener noreferrer">
+              <IconeWhats />
               Tenho interesse — falar no WhatsApp
             </a>
             <a className="st-cta-2" href={zap} target="_blank" rel="noopener noreferrer" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>

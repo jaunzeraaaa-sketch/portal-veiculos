@@ -2,10 +2,14 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { BRL, dataBR, hojeISO } from '@/lib/format'
-import { criarLead, excluirLead, moverLead, salvarAcao } from '@/actions/leads'
+import {
+  criarInteresse, criarLead, definirStatusInteresse, excluirInteresse,
+  excluirLead, moverLead, salvarAcao,
+} from '@/actions/leads'
 import type { LeadCompleto } from '@/app/painel/leads/page'
-import type { Veiculo } from '@/lib/types'
+import type { Interesse, Veiculo } from '@/lib/types'
 import Modal from '@/components/Modal'
+import { AgendaLead, CamposInteresse, InteresseNoCadastro } from '@/components/LeadExtras'
 
 const ESTAGIOS = ['Novo', 'Contatado', 'Qualificado', 'Visita agendada', 'Visita realizada', 'Proposta', 'Fechado'] as const
 const COR: Record<string, string> = {
@@ -14,6 +18,7 @@ const COR: Record<string, string> = {
   'Proposta': 'var(--ord-6)', 'Fechado': 'var(--good)',
 }
 const MOTIVOS = ['Preço acima do orçamento', 'Comprou em outra loja', 'Não passou no financiamento', 'Sumiu / não respondeu', 'Não gostou do carro', 'Outro']
+const STATUS_INT = ['Aguardando disponibilidade', 'Atendido', 'Cancelado']
 const LIXO = <><path d="M3 6h18" /><path d="M8 6V4h8v2" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /></>
 
 function prazo(data: string | null, hoje: string) {
@@ -23,13 +28,21 @@ function prazo(data: string | null, hoje: string) {
   return { txt: dataBR(data), over: false }
 }
 
-export default function Kanban({ leads, estoque, hoje }: { leads: LeadCompleto[]; estoque: Veiculo[]; hoje: string }) {
+const descreve = (i: Interesse) =>
+  [i.marca, i.modelo, i.versao, i.ano ? (i.ano_ate && i.ano_ate > i.ano ? `${i.ano}–${i.ano_ate}` : i.ano) : null]
+    .filter(Boolean).join(' ')
+
+export default function Kanban({ leads, estoque, interesses, hoje }: {
+  leads: LeadCompleto[]; estoque: Veiculo[]; interesses: Interesse[]; hoje: string
+}) {
   const router = useRouter()
   const [pendente, iniciar] = useTransition()
   const [novo, setNovo] = useState(false)
   const [editar, setEditar] = useState<LeadCompleto | null>(null)
   const [apagar, setApagar] = useState<LeadCompleto | null>(null)
+  const [interesseDe, setInteresseDe] = useState<LeadCompleto | null>(null)
   const [erro, setErro] = useState('')
+  const [aviso, setAviso] = useState('')
 
   const rodar = (fn: () => Promise<{ erro?: string }>, fechar?: () => void) =>
     iniciar(async () => {
@@ -39,6 +52,7 @@ export default function Kanban({ leads, estoque, hoje }: { leads: LeadCompleto[]
       fechar?.(); router.refresh()
     })
 
+  const doLead = (id: string) => interesses.filter((i) => i.lead_id === id)
   const perdidos = leads.filter((l) => l.estagio === 'Perdido')
 
   return (
@@ -46,9 +60,11 @@ export default function Kanban({ leads, estoque, hoje }: { leads: LeadCompleto[]
       <div className="toolbar">
         <button className="btn" onClick={() => { setErro(''); setNovo(true) }}>+ Novo lead</button>
         <span style={{ fontSize: '11.5px', color: 'var(--muted)' }}>
-          Clique no card para mudar o estágio ou anotar a próxima ação.
+          Clique no card para mudar o estágio, anotar a próxima ação ou registrar o carro que ele procura.
         </span>
       </div>
+
+      {aviso && <div className="demo-note" style={{ marginBottom: 14 }}><span>🔔</span><div>{aviso}</div></div>}
 
       <div className="kanban">
         {ESTAGIOS.map((est) => {
@@ -63,13 +79,19 @@ export default function Kanban({ leads, estoque, hoje }: { leads: LeadCompleto[]
               {itens.length ? itens.map((l) => {
                 const p = prazo(l.proxima_acao_data, hoje)
                 const fechado = est === 'Fechado'
+                const procura = doLead(l.id).filter((i) => i.status === 'Aguardando disponibilidade')
                 return (
-                  <button className={`lead-card ${p.over && !fechado ? 'overdue' : ''}`} key={l.id}
+                  <button className={`lead-card ${p.over && !fechado ? 'overdue' : ''}`} key={l.id} id={`lead-${l.id}`}
                     onClick={() => { setErro(''); setEditar(l) }} style={{ width: '100%', textAlign: 'left', font: 'inherit' }}>
                     <div className="nm">{l.nome}</div>
                     <div className="cr">
                       {l.veiculos ? `${l.veiculos.marca} ${l.veiculos.modelo} · ${l.veiculos.ano_mod}` : 'sem carro definido'}
                     </div>
+                    {procura.length > 0 && (
+                      <div className="lead-busca" title="Carro que ele procura e ainda não temos">
+                        🔎 procura {descreve(procura[0])}{procura.length > 1 ? ` +${procura.length - 1}` : ''}
+                      </div>
+                    )}
                     <div className="mt">
                       <span>{l.proxima_acao ?? 'sem próxima ação'}</span>
                       {!fechado && (
@@ -82,6 +104,7 @@ export default function Kanban({ leads, estoque, hoje }: { leads: LeadCompleto[]
                       <span className="src">{l.origem}</span>
                       <span>{l.veiculos ? BRL(l.veiculos.preco) : ''}</span>
                     </div>
+                    {l.observacoes && <div className="lead-obs">{l.observacoes}</div>}
                   </button>
                 )
               }) : <div className="empty" style={{ padding: '8px 0', fontSize: '11.5px' }}>vazio</div>}
@@ -103,8 +126,9 @@ export default function Kanban({ leads, estoque, hoje }: { leads: LeadCompleto[]
         </div>
       )}
 
+      {/* ---------------- novo lead ---------------- */}
       {novo && (
-        <Modal titulo="Novo lead" ok="Salvar lead" erro={erro} pendente={pendente}
+        <Modal titulo="Novo lead" ok="Salvar lead" largo erro={erro} pendente={pendente}
           onCancel={() => setNovo(false)} form={(fd) => rodar(() => criarLead(fd), () => setNovo(false))}>
           <div className="mtext">Ele entra no funil em <b>Novo</b>, já com a próxima ação marcada para hoje.</div>
           <div className="grid g-2" style={{ gap: '0 12px' }}>
@@ -119,63 +143,140 @@ export default function Kanban({ leads, estoque, hoje }: { leads: LeadCompleto[]
             </div>
           </div>
           <div className="field">
-            <label>Carro de interesse</label>
+            <label>Carro de interesse (do seu estoque)</label>
             <select name="veiculo_id" defaultValue="">
               <option value="">Ainda não definiu</option>
               {estoque.map((c) => <option key={c.id} value={c.id}>{c.marca} {c.modelo} {c.versao} · {BRL(c.preco)}</option>)}
             </select>
           </div>
           <div className="grid g-2" style={{ gap: '0 12px' }}>
-            <div className="field" style={{ marginBottom: 0 }}><label>Próxima ação</label><input name="proxima_acao" defaultValue="Primeiro contato" /></div>
-            <div className="field" style={{ marginBottom: 0 }}><label>Quando</label><input name="proxima_acao_data" type="date" defaultValue={hojeISO()} /></div>
-          </div>
-        </Modal>
-      )}
-
-      {editar && (
-        <Modal titulo={editar.nome} ok="Salvar" erro={erro} pendente={pendente}
-          onCancel={() => setEditar(null)}
-          form={(fd) => rodar(() => salvarAcao(editar.id, fd), () => setEditar(null))}>
-          <div className="mtext">
-            {editar.telefone ? `${editar.telefone} · ` : ''}{editar.cidade ?? ''} · veio de <b>{editar.origem}</b>
-            {editar.veiculos ? <> · interesse no <b>{editar.veiculos.marca} {editar.veiculos.modelo}</b></> : null}
+            <div className="field"><label>Próxima ação</label><input name="proxima_acao" defaultValue="Primeiro contato" /></div>
+            <div className="field"><label>Quando</label><input name="proxima_acao_data" type="date" defaultValue={hojeISO()} /></div>
           </div>
 
           <div className="field">
-            <label>Estágio no funil</label>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {[...ESTAGIOS, 'Perdido'].map((e) => (
-                <button key={e} type="button" className="mini"
-                  style={e === editar.estagio ? { borderColor: 'var(--brand)', color: 'var(--brand)', fontWeight: 700 } : undefined}
-                  onClick={() => rodar(() => moverLead(editar.id, e), () => setEditar(null))}>
-                  {e}
-                </button>
-              ))}
+            <label>Observação</label>
+            <textarea name="observacoes" rows={3}
+              placeholder="Carro que ele quer, preferências, prazo para comprar, condições que pediu, o que ficou combinado…" />
+          </div>
+
+          <AgendaLead />
+          <InteresseNoCadastro />
+        </Modal>
+      )}
+
+      {/* ---------------- editar lead ---------------- */}
+      {editar && (() => {
+        const lista = doLead(editar.id)
+        return (
+          <Modal titulo={editar.nome} ok="Salvar" largo erro={erro} pendente={pendente}
+            onCancel={() => setEditar(null)}
+            form={(fd) => rodar(() => salvarAcao(editar.id, fd), () => setEditar(null))}>
+            <input type="hidden" name="nome_atual" value={editar.nome} />
+            <div className="mtext">
+              {editar.telefone ? `${editar.telefone} · ` : ''}{editar.cidade ?? ''} · veio de <b>{editar.origem}</b>
+              {editar.veiculos ? <> · interesse no <b>{editar.veiculos.marca} {editar.veiculos.modelo}</b></> : null}
             </div>
-          </div>
 
-          <div className="grid g-2" style={{ gap: '0 12px' }}>
-            <div className="field"><label>Próxima ação</label><input name="proxima_acao" defaultValue={editar.proxima_acao ?? ''} placeholder="Ex.: ligar sobre o laudo" /></div>
-            <div className="field"><label>Quando</label><input name="proxima_acao_data" type="date" defaultValue={editar.proxima_acao_data ?? ''} /></div>
-          </div>
-
-          {editar.estagio === 'Perdido' && (
             <div className="field">
-              <label>Motivo da perda</label>
-              <select name="motivo_perda" defaultValue={editar.motivo_perda ?? ''}>
-                <option value="">Escolha o motivo</option>
-                {MOTIVOS.map((m) => <option key={m}>{m}</option>)}
-              </select>
+              <label>Estágio no funil</label>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {[...ESTAGIOS, 'Perdido'].map((e) => (
+                  <button key={e} type="button" className="mini"
+                    style={e === editar.estagio ? { borderColor: 'var(--brand)', color: 'var(--brand)', fontWeight: 700 } : undefined}
+                    onClick={() => rodar(() => moverLead(editar.id, e), () => setEditar(null))}>
+                    {e}
+                  </button>
+                ))}
+              </div>
             </div>
-          )}
 
-          <div style={{ borderTop: '1px solid var(--grid)', marginTop: 14, paddingTop: 12 }}>
-            <button type="button" className="ia danger" title="Excluir lead"
-              onClick={() => { setApagar(editar); setEditar(null) }}>
-              <svg viewBox="0 0 24 24">{LIXO}</svg>
-            </button>
-            <span style={{ fontSize: 11, color: 'var(--muted)', marginLeft: 8 }}>Excluir este lead</span>
+            <div className="grid g-2" style={{ gap: '0 12px' }}>
+              <div className="field"><label>Próxima ação</label><input name="proxima_acao" defaultValue={editar.proxima_acao ?? ''} placeholder="Ex.: ligar sobre o laudo" /></div>
+              <div className="field"><label>Quando</label><input name="proxima_acao_data" type="date" defaultValue={editar.proxima_acao_data ?? ''} /></div>
+            </div>
+
+            <div className="field">
+              <label>Observação</label>
+              <textarea name="observacoes" rows={3} defaultValue={editar.observacoes ?? ''}
+                placeholder="Carro que ele quer, preferências, prazo para comprar, condições que pediu…" />
+            </div>
+
+            {editar.estagio === 'Perdido' && (
+              <div className="field">
+                <label>Motivo da perda</label>
+                <select name="motivo_perda" defaultValue={editar.motivo_perda ?? ''}>
+                  <option value="">Escolha o motivo</option>
+                  {MOTIVOS.map((m) => <option key={m}>{m}</option>)}
+                </select>
+              </div>
+            )}
+
+            <AgendaLead dataAcao={editar.proxima_acao_data} />
+
+            {/* interesses do lead */}
+            <fieldset className="marcar">
+              <legend>
+                Procura no mercado
+                <span className="cont">{lista.length}</span>
+              </legend>
+              <p className="ajuda">
+                Carro que este cliente quer e que você ainda não tem. Quando um igual entrar no estoque, o sino avisa.
+              </p>
+              {lista.length ? lista.map((i) => (
+                <div className="int-item" key={i.id}>
+                  <div className="int-info">
+                    <div className="nm">{descreve(i)}</div>
+                    {i.observacoes && <div className="ob">{i.observacoes}</div>}
+                    {i.preco_ate ? <div className="ob">até {BRL(i.preco_ate)}</div> : null}
+                  </div>
+                  <select value={i.status} disabled={pendente}
+                    onChange={(e) => rodar(() => definirStatusInteresse(i.id, e.target.value))}>
+                    {STATUS_INT.map((s) => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                  <button type="button" className="ia danger" title="Excluir este interesse"
+                    onClick={() => rodar(() => excluirInteresse(i.id))}>
+                    <svg viewBox="0 0 24 24">{LIXO}</svg>
+                  </button>
+                </div>
+              )) : <div className="empty" style={{ padding: '4px 0', fontSize: '11.5px' }}>nada registrado</div>}
+
+              <button type="button" className="btn ghost" style={{ marginTop: 10 }}
+                onClick={() => { setInteresseDe(editar); setEditar(null); setErro('') }}>
+                + Registrar carro que ele procura
+              </button>
+            </fieldset>
+
+            <div style={{ borderTop: '1px solid var(--grid)', marginTop: 14, paddingTop: 12 }}>
+              <button type="button" className="ia danger" title="Excluir lead"
+                onClick={() => { setApagar(editar); setEditar(null) }}>
+                <svg viewBox="0 0 24 24">{LIXO}</svg>
+              </button>
+              <span style={{ fontSize: 11, color: 'var(--muted)', marginLeft: 8 }}>Excluir este lead</span>
+            </div>
+          </Modal>
+        )
+      })()}
+
+      {/* ---------------- novo interesse ---------------- */}
+      {interesseDe && (
+        <Modal titulo={`O que ${interesseDe.nome} procura`} ok="Registrar procura" largo erro={erro} pendente={pendente}
+          onCancel={() => setInteresseDe(null)}
+          form={(fd) => iniciar(async () => {
+            setErro('')
+            const r = await criarInteresse(interesseDe.id, fd)
+            if (r?.erro) { setErro(r.erro); return }
+            setAviso(r.jaTem
+              ? `Esse carro já está no seu estoque! Gerei ${r.jaTem === 1 ? 'um alerta' : `${r.jaTem} alertas`} — veja em Alertas de procura, logo abaixo do funil.`
+              : `Procura registrada. Quando um ${fd.get('marca')} ${fd.get('modelo')} entrar no estoque, o sino avisa.`)
+            setInteresseDe(null); router.refresh()
+            setTimeout(() => setAviso(''), 12000)
+          })}>
+          <div className="mtext">
+            Marca, modelo e ano são o que o sistema usa para achar o carro depois. Versão e preço são conferência extra —
+            preencha só se o cliente foi específico, senão você corre o risco de perder um alerta bom.
           </div>
+          <CamposInteresse />
         </Modal>
       )}
 
@@ -185,7 +286,8 @@ export default function Kanban({ leads, estoque, hoje }: { leads: LeadCompleto[]
           onConfirm={() => rodar(() => excluirLead(apagar.id), () => setApagar(null))}>
           <div className="mtext">
             Apagar <b>{apagar.nome}</b> do funil? Se ele não comprou, prefira mover para <b>Perdido</b> com o motivo —
-            assim você mantém o histórico do que faz você perder venda.
+            assim você mantém o histórico do que faz você perder venda.<br /><br />
+            As procuras e os alertas deste cliente também são apagados.
           </div>
         </Modal>
       )}
