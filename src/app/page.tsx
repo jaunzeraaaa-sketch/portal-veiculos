@@ -83,9 +83,14 @@ export default async function Vitrine({ searchParams }: { searchParams: Promise<
                   {(c.dias_estoque ?? 99) <= 10
                     ? <span className="tag new">Chegou agora</span>
                     : <span className="tag">{c.cor}</span>}
-                  {c.fotos?.[0]
-                    ? <img src={c.fotos[0]} alt={`${c.marca} ${c.modelo}`} className="st-foto-real" />
-                    : <CarroSvg />}
+                  {c.fotos?.[0] ? (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={c.fotos[0]} alt="" aria-hidden="true" className="card-fundo" />
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={c.fotos[0]} alt={`${c.marca} ${c.modelo}`} className="card-foto" />
+                    </>
+                  ) : <CarroSvg />}
                 </div>
                 <div className="st-card-b">
                   <h3>{c.marca} {c.modelo}</h3>

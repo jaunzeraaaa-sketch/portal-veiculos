@@ -112,6 +112,13 @@ export default function FotosUpload({ iniciais = [] }: { iniciais?: string[] | n
 
       {erro && <div className="foto-erro">{erro}</div>}
 
+      {fotos.length > 0 && (
+        <div className="foto-dica">
+          Foto deitada (celular na horizontal) rende um anúncio maior. As em pé aparecem inteiras,
+          com as laterais preenchidas — nenhum carro é cortado.
+        </div>
+      )}
+
       {fotos.length > 0 ? (
         <div className="foto-grid">
           {fotos.map((f, i) => (
@@ -136,6 +143,8 @@ export default function FotosUpload({ iniciais = [] }: { iniciais?: string[] | n
         <div className="foto-vazio">
           No celular, <b>Tirar foto</b> abre a câmera direto. No computador, os dois botões abrem os arquivos.
           A primeira foto vira a capa do anúncio.
+          <br /><b>Dica:</b> vire o celular na horizontal para fotografar. Foto deitada preenche o
+          anúncio inteiro; foto em pé aparece completa, mas menor.
         </div>
       )}
     </div>

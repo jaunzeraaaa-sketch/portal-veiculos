@@ -5,7 +5,7 @@ import { supabaseServer, supabaseConfigurado } from '@/lib/supabase/server'
 import { getConfig } from '@/lib/loja'
 import { BRL, NUM, linkWhats } from '@/lib/format'
 import type { Veiculo } from '@/lib/types'
-import CarroSvg from '@/components/CarroSvg'
+import Galeria from '@/components/Galeria'
 import TopoVitrine, { IconeWhats } from '@/components/TopoVitrine'
 import { Rodape } from '@/app/page'
 
@@ -64,18 +64,7 @@ export default async function Ficha({ params }: { params: Promise<{ cod: string 
 
         <div className="st-detail">
           <div>
-            <div className="st-gal-main">
-              {c.fotos?.[0]
-                ? <img src={c.fotos[0]} alt={`${c.marca} ${c.modelo}`} className="st-foto-real" />
-                : <CarroSvg />}
-            </div>
-            <div className="st-thumbs">
-              {(c.fotos?.length ? c.fotos.slice(0, 6) : Array.from({ length: 6 })).map((f, i) => (
-                <div key={i} className={i === 0 ? 'on' : ''}>
-                  {typeof f === 'string' && <img src={f} alt="" className="st-foto-real" />}
-                </div>
-              ))}
-            </div>
+            <Galeria fotos={c.fotos} alt={`${c.marca} ${c.modelo} ${c.versao}`} />
           </div>
 
           <div>
